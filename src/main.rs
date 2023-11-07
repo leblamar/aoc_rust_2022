@@ -10,6 +10,7 @@ mod day7;
 mod day8;
 mod day9;
 mod day10;
+mod day11;
 
 fn main() {
   env::set_var("RUST_BACKTRACE", "1");
@@ -24,4 +25,5 @@ fn main() {
   day8::main();
   day9::main();
   day10::main();
+  day11::main();
 }
