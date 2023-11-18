@@ -1,5 +1,7 @@
+use std::cmp::Ordering;
 use std::fs::read_to_string;
-use std::collections::HashSet;
+//use std::collections::{BinaryHeap, HashSet};
+use std::collections::BinaryHeap;
 
 pub fn main() {
   println!("It's day 9 !!!");
@@ -33,7 +35,7 @@ fn get_moves() -> Vec<Move> {
 }
 
 fn line_to_move_list(line_list: Vec<&str>) -> Vec<Move> {
-  let line_move = match *line_list.get(0).unwrap() {
+  let line_move = match line_list[0] {
     "U" => Move::Up,
     "D" => Move::Down,
     "L" => Move::Left,
@@ -41,15 +43,10 @@ fn line_to_move_list(line_list: Vec<&str>) -> Vec<Move> {
     x => panic!("This letter is unrecognized {}", x)
   };
 
-  let line_count: usize = match line_list.get(1).unwrap().parse() {
-    Ok(count) => count,
-    Err(_) => panic!("C'était pas prévu qu'il y est autre chose qu'un nombre")
-  };
-
-  vec![line_move; line_count]
+  vec![line_move; line_list[1].parse().unwrap()]
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, PartialOrd)]
 struct Point {
   x: i32,
   y: i32
@@ -205,38 +202,55 @@ impl Point {
   }
 }
 
-fn compute_tail_moves(moves: &Vec<Move>, rope_length: usize) -> HashSet<Point> {
+impl Ord for Point {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+      match self.x.cmp(&other.x) {
+        Ordering::Equal => self.y.cmp(&other.y),
+        ord => ord
+      }
+    }
+}
+
+fn compute_tail_moves(moves: &Vec<Move>, rope_length: usize) -> usize {
   let last_idx = rope_length - 1;
   let mut rope = vec![Point { x: 0, y: 0 }; rope_length];
-  let mut moves_done: HashSet<Point> = HashSet::new();
-  moves_done.insert(rope.get(last_idx).unwrap().clone());
+  // Excatly same speed than using a hash set :'(
+  let mut moves_done: BinaryHeap<Point> = BinaryHeap::new();
+  moves_done.push(rope[last_idx].clone());
 
   for move_elt in moves {
     let mut current_move = move_elt.clone();
     for (cur_idx, next_idx) in (0..last_idx).zip(1..rope_length) {
-      let cur_elt = rope.get(cur_idx).unwrap();
-      let next_elt = rope.get(next_idx).unwrap();
+      let cur_elt = &rope[cur_idx];
+      let next_elt = &rope[next_idx];
       let next_elt_move = cur_elt.compute_other_move(next_elt, &current_move);
-      let cur_elt_mut = rope.get_mut(cur_idx).unwrap();
+      let cur_elt_mut = &mut rope[cur_idx];
       cur_elt_mut.move_from(current_move);
       current_move = next_elt_move.clone();
     }
-    let tail = rope.get_mut(last_idx).unwrap();
+    let tail = &mut rope[last_idx];
     tail.move_from(current_move);
-    moves_done.insert(tail.clone());
+    moves_done.push(tail.clone());
   }
 
-  moves_done
+  let mut count = 1;
+  let mut last_diff_point = moves_done.pop().unwrap();
+  while let Some(point) = moves_done.pop() {
+    if point != last_diff_point {
+      last_diff_point = point;
+      count += 1; 
+    }
+  }
+
+  count
 }
 
 fn part1(moves: &Vec<Move>) {
-  let moves_done = compute_tail_moves(moves, 2);
-  let result = moves_done.len();
+  let result = compute_tail_moves(moves, 2);
   println!("Part 1 result : {}", result)
 }
 
 fn part2(moves: &Vec<Move>) {
-  let moves_done = compute_tail_moves(moves, 10);
-  let result = moves_done.len();
+  let result = compute_tail_moves(moves, 10);
   println!("Part 2 result 2 : {}", result);
 }

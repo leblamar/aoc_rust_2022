@@ -11,7 +11,6 @@ pub fn main() {
 
 #[derive(Debug, Clone)]
 struct Monkey {
-  id: usize,
   items: Vec<u64>,
   operation: Operation,
   div_test_nb: u64,
@@ -23,7 +22,6 @@ struct Monkey {
 impl Monkey {
   fn create_monkey_from_chunk(chunk: &[&str]) -> Monkey {
     Monkey { 
-      id: parse_id(chunk[0]), 
       items: parse_items(chunk[1]), 
       operation: Operation::create_operation_from_line(chunk[2]), 
       div_test_nb: parse_div_test_nb(chunk[3]), 
@@ -33,39 +31,65 @@ impl Monkey {
     }
   }
 
-  fn play_round(monkey_list: &mut Vec<Monkey>, with_div_by_three: bool, max_value: u64) {
-    let length = monkey_list.len();
-    
-    for idx in 0..length {
-      let monkey = monkey_list.get(idx).unwrap().clone();
-      monkey.play_turn(monkey_list, with_div_by_three, max_value);
+  fn get_monkey_and_next_monkeys(monkey_slice: &mut [Monkey], idx: usize) -> (&mut Monkey, &mut Monkey, &mut Monkey) {
+    let true_monkey_id = monkey_slice[idx].monkey_on_true_id;
+    let false_monkey_id = monkey_slice[idx].monkey_on_false_id;
+    let (first_monkeys, last_monkeys) = monkey_slice.split_at_mut(idx);
+    if true_monkey_id < idx && idx < false_monkey_id {
+      let (cur_monkey, last_last_monkeys) = last_monkeys.split_at_mut(1);
+      return (&mut cur_monkey[0], &mut first_monkeys[true_monkey_id], &mut last_last_monkeys[false_monkey_id - idx - 1]);
+    } else if false_monkey_id < idx && idx < true_monkey_id {
+      let (cur_monkey, last_last_monkeys) = last_monkeys.split_at_mut(1);
+      return (&mut cur_monkey[0], &mut last_last_monkeys[true_monkey_id - idx + 1], &mut first_monkeys[false_monkey_id]);
+    } else if true_monkey_id < idx && false_monkey_id < idx {
+      if true_monkey_id < false_monkey_id {
+        let (true_slice, false_slice) = first_monkeys.split_at_mut(false_monkey_id);
+        return (&mut last_monkeys[0], &mut true_slice[true_monkey_id], &mut false_slice[0]);
+      } else if true_monkey_id > false_monkey_id {
+        let (false_slice, true_slice) = first_monkeys.split_at_mut(true_monkey_id);
+        return (&mut last_monkeys[0], &mut true_slice[0], &mut false_slice[false_monkey_id]);
+      } else {
+        panic!("On devrait pas arriver ici, ça veut dire que true == false: idx: {}, true: {}, false: {}", idx, true_monkey_id, false_monkey_id)
+      }
+    } else if idx < true_monkey_id && idx < false_monkey_id {
+      if true_monkey_id < false_monkey_id {
+        let (last_first_slice, last_last_slice) = last_monkeys.split_at_mut(false_monkey_id - idx);
+        let (cur_monkey, true_monkey) = last_first_slice.split_at_mut(true_monkey_id - idx);
+        return (&mut cur_monkey[0], &mut true_monkey[0], &mut last_last_slice[0]);
+      } else if true_monkey_id > false_monkey_id {
+        let (last_first_slice, last_last_slice) = last_monkeys.split_at_mut(true_monkey_id - idx);
+        let (cur_monkey, false_monkey) = last_first_slice.split_at_mut(false_monkey_id - idx);
+        return (&mut cur_monkey[0], &mut last_last_slice[0], &mut false_monkey[0]);
+      } else {
+        panic!("On devrait pas arriver ici, ça veut dire que true == false: idx: {}, true: {}, false: {}", idx, true_monkey_id, false_monkey_id)
+      }
+    } else {
+      panic!("On devrait pas arriver ici !!! Ça veut dire qu'un true ou false monkey vaut idx !!! idx: {}, true: {}, false: {}", idx, true_monkey_id, false_monkey_id);
     }
   }
 
-  fn play_turn(&self, monkey_list: &mut Vec<Monkey>, with_div_by_three: bool, max_value: u64) {
-    let true_items: &mut Vec<u64> = &mut Vec::new();
-    let false_items: &mut Vec<u64> = &mut Vec::new();
-    for item in &self.items {
-      let new_worry_level_without_div = self.operation.apply(*item);
-      let new_worry_level = if with_div_by_three { new_worry_level_without_div / 3 } 
-        else { new_worry_level_without_div % max_value };
+  fn play_round(monkey_list: &mut Vec<Monkey>, reduce_worry: &impl Fn(u64) -> u64) {
+    let length = monkey_list.len();
+    let monkey_slice = &mut monkey_list[..];
+    for idx in 0..length {
+      let (cur_monkey, true_monkey, false_monkey) = Monkey::get_monkey_and_next_monkeys(monkey_slice, idx);
+      cur_monkey.play_turn(true_monkey, false_monkey, reduce_worry);
+    }
+  }
+
+  fn play_turn(&mut self, true_monkey: &mut Monkey, false_monkey: &mut Monkey, reduce_worry: &impl Fn(u64) -> u64) {
+    let length = self.items.len();
+    for &item in &self.items {
+      let new_worry_level= reduce_worry(self.operation.apply(item));
       if new_worry_level % self.div_test_nb == 0 {
-        true_items.push(new_worry_level);
+        true_monkey.items.push(new_worry_level);
       } else {
-        false_items.push(new_worry_level);
+        false_monkey.items.push(new_worry_level);
       }
     }
 
-    for monkey in monkey_list {
-      if monkey.id == self.id {
-        monkey.inspect_item_counter += self.items.len();
-        monkey.items.clear();
-      } else if monkey.id == self.monkey_on_true_id {
-        monkey.items.append(true_items);
-      } else if monkey.id == self.monkey_on_false_id {
-        monkey.items.append(false_items);
-      }
-    }
+    self.inspect_item_counter += length;
+    self.items.clear();
   }
 }
 
@@ -79,8 +103,7 @@ enum Operation {
 impl Operation {
   fn parse_value(formula: &str, symbol: &str) -> u64 {
     formula.split(symbol)
-      .collect::<Vec<&str>>()
-      .get(1)
+      .nth(1)
       .unwrap()
       .parse()
       .unwrap()
@@ -88,8 +111,7 @@ impl Operation {
 
   fn create_operation_from_line(line: &str) -> Operation {
     let filtered_line = line.split("=")
-      .collect::<Vec<&str>>()
-      .get(1)
+      .nth(1)
       .unwrap()
       .replace(" ", "");
 
@@ -122,21 +144,9 @@ fn read_monkeys() -> Vec<Monkey> {
     .collect()
 }
 
-fn parse_id(line: &str) -> usize {
-  let almost_id = *line.split(" ")
-    .collect::<Vec<&str>>()
-    .get(1)
-    .unwrap();
-  almost_id.split_at(almost_id.len() - 1)
-    .0
-    .parse()
-    .unwrap()
-}
-
 fn parse_items(line: &str) -> Vec<u64> {
   line.split(":")
-    .collect::<Vec<&str>>()
-    .get(1)
+    .nth(1)
     .unwrap()
     .replace(" ", "")
     .split(",")
@@ -147,8 +157,7 @@ fn parse_items(line: &str) -> Vec<u64> {
 fn parse_div_test_nb(line: &str) -> u64 {
   line.replace(" ", "")
     .split("by")
-    .collect::<Vec<&str>>()
-    .get(1)
+    .nth(1)
     .unwrap()
     .parse()
     .unwrap()
@@ -157,21 +166,17 @@ fn parse_div_test_nb(line: &str) -> u64 {
 fn parse_monkey_condition_id(line: &str) -> usize {
   line.replace(" ", "")
     .split("monkey")
-    .collect::<Vec<&str>>()
-    .get(1)
+    .nth(1)
     .unwrap()
     .parse()
     .unwrap()
 }
 
 fn part1(monkey_list: &Vec<Monkey>) {
-  let max_value: u64 = monkey_list.clone()
-      .iter()
-      .map(|monkey| monkey.div_test_nb)
-      .product();
+  let reduce_worry = |worry_level: u64| worry_level / 3;
   let mut new_monkey_list = monkey_list.clone();
   for _ in 0..20 {
-    Monkey::play_round(&mut new_monkey_list, true, max_value);
+    Monkey::play_round(&mut new_monkey_list, &reduce_worry);
   }
   
   let mut activest: usize = 0;
@@ -190,13 +195,13 @@ fn part1(monkey_list: &Vec<Monkey>) {
 }
 
 fn part2(monkey_list: &Vec<Monkey>) {
-  let max_value: u64 = monkey_list.clone()
-      .iter()
+  let max_value: u64 = monkey_list.iter()
       .map(|monkey| monkey.div_test_nb)
       .product();
+  let reduce_worry = |worry_level: u64| worry_level % max_value;
   let mut new_monkey_list = monkey_list.clone();
   for _ in 0..10_000 {
-    Monkey::play_round(&mut new_monkey_list, false, max_value);
+    Monkey::play_round(&mut new_monkey_list, &reduce_worry);
   }
   
   let mut activest: usize = 0;

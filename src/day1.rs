@@ -4,8 +4,8 @@ pub fn main() {
   println!("It's day 1 !!!");
   let parsed_list = parse_file_to_elves();
 
-  part1(parsed_list.clone());
-  part2(parsed_list.clone());
+  part1(&parsed_list);
+  part2(&parsed_list);
 }
 
 fn parse_file_to_elves() -> Vec<Vec<i32>> {
@@ -21,29 +21,24 @@ fn parse_file_to_elves() -> Vec<Vec<i32>> {
       parsed_list.push(new_elf);
     } else {
       let last_index = parsed_list.len() - 1;
-
-      let last_elf = parsed_list.get_mut(last_index).unwrap();
-
       let parsed_line: i32 = line.parse().unwrap();
-
-      last_elf.push(parsed_line)
+      parsed_list[last_index].push(parsed_line);
     }
   }
 
   parsed_list
 }
 
-fn part1(parsed_list: Vec<Vec<i32>>) {
+fn part1(parsed_list: &Vec<Vec<i32>>) {
   let result = parsed_list.iter()
     .map(|elf| elf.iter().sum::<i32>())
     .max()
     .unwrap();
-  
 
   println!("Part 1 result : {}", result)
 }
 
-fn part2(parsed_list: Vec<Vec<i32>>) {
+fn part2(parsed_list: &Vec<Vec<i32>>) {
   let elves: Vec<i32> = parsed_list.iter()
     .map(|elf| elf.iter().sum::<i32>())
     .collect();

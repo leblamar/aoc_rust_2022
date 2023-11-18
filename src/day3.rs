@@ -1,10 +1,10 @@
 use std::fs::read_to_string;
-use std::collections::HashSet;
 use std::str::Lines;
 
 pub fn main() {
   println!("It's day 3 !!!");
-  let file = read_to_string("src/day3_input.txt").unwrap();
+  let file = read_to_string("src/day3_input.txt")
+    .unwrap();
   part1(file.lines());
   part2(file.lines());
 }
@@ -16,48 +16,40 @@ fn to_value(string: char) -> i32 {
   string as i32 - if string.is_lowercase() {to_sub_low} else {to_sub_up}
 }
 
-fn part1(parsed_lines: Lines) {
-  let mut count = 0;
-  for line in parsed_lines {
-    let mid = line.len() / 2;
-    let (first, second) = line.split_at(mid);
-    let mut first_set = HashSet::new();
-    first.chars().for_each(|char| {first_set.insert(char);});
-    let same_letter = second.chars()
-      .find(|char| first_set.contains(char))
-      .unwrap();
-    count += to_value(same_letter);
-  }
+fn cut_in_two(line: &str) -> (&str, &str) {
+  let mid = line.len() / 2;
+  let first = &line[0..mid];
+  let second = &line[mid..line.len()];
+  (first, second)
+}
 
-  println!("Part 1 result : {}", count)
+fn find_common_letter2((first, second): (&str, &str)) -> char {
+  first.chars()
+    .find(|&char| second.contains(char))
+    .unwrap()
+}
+
+fn part1(parsed_lines: Lines) {
+  let result: i32 = parsed_lines.into_iter()
+    .map(cut_in_two)
+    .map(find_common_letter2)
+    .map(to_value)
+    .sum();
+  println!("Part 1 result : {}", result)
+}
+
+fn find_common_letter3(elves: &[&str]) -> char {
+  elves[0].chars()
+    .filter(|&char| elves[1].contains(char))
+    .find(|&char| elves[2].contains(char))
+    .unwrap()
 }
 
 fn part2(parsed_lines: Lines) {
-  let mut common_badge: HashSet<char> = HashSet::new();
-  let mut second_common_badge: HashSet<char> = HashSet::new();
-
-  let mut which_elf = 0;
-  let mut count = 0;
-  for line in parsed_lines {
-    match which_elf {
-      0 => {
-        common_badge = HashSet::new();
-        line.chars().for_each(|char| {common_badge.insert(char);});
-      },
-      1 => {
-        second_common_badge = HashSet::new();
-        line.chars()
-          .filter(|char| common_badge.contains(char))
-          .for_each(|char| {second_common_badge.insert(char);});
-      },
-      2 => {
-        count += to_value(line.chars().find(|char| second_common_badge.contains(char)).unwrap());
-      },
-      _ => {}
-    };
-
-    which_elf = (which_elf + 1) % 3;
-  }
-
-  println!("Part 2 result : {}", count);
+  let result: i32 = parsed_lines.collect::<Vec<&str>>()
+    .chunks(3)
+    .map(find_common_letter3)
+    .map(to_value)
+    .sum();
+  println!("Part 2 result : {}", result);
 }

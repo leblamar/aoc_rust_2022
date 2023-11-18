@@ -101,22 +101,20 @@ impl Matrix {
   }
 
   fn get_cell_i(&self, (y, x): (i32, i32)) -> &Cell {
-    self.cells.get(y as usize).unwrap()
-      .get(x as usize).unwrap()
+    &self.cells[y as usize][x as usize]
   }
 
   fn get_cell(&self, (y, x): (usize, usize)) -> &Cell {
-    self.cells.get(y).unwrap()
-      .get(x).unwrap()
+    &self.cells[y][x]
   }
 
-  fn get_friends(&self, pos: (usize, usize)) -> Vec<(i32, i32, Cell)> {
+  fn get_friends(&self, pos: (usize, usize)) -> Vec<(usize, usize, Cell)> {
     let val = self.get_cell(pos).value;
     Matrix::get_directions()
       .iter()
-      .map(|(dx, dy)| (pos.0 as i32 + dy, pos.1 as i32 + dx))
+      .map(|&(dx, dy)| (pos.0 as i32 + dy, pos.1 as i32 + dx))
       .filter(|&pos| self.is_inside(pos))
-      .map(|pos| (pos.0, pos.1, self.get_cell_i(pos).clone()))
+      .map(|pos| (pos.0 as usize, pos.1 as usize, self.get_cell_i(pos).clone()))
       .filter(|(_, _, cell)| cell.value >= val - 1)
       .collect()
   }
@@ -126,32 +124,20 @@ impl Matrix {
     let mut queue: VecDeque<(usize, usize)> = VecDeque::new();
     queue.push_front(self.pos_e);
 
-    while let Some((row_y, col_x)) = queue.pop_back() {
-      if is_visited(&visited, (row_y, col_x)) {
+    while let Some((y, x)) = queue.pop_back() {
+      if visited[y][x] {
           continue;
       }
-      set_visited(&mut visited, (row_y, col_x));
-      let cell = self.get_cell((row_y, col_x)).clone();
-      for (new_row_y, new_col_x, new_cell) in self.get_friends((row_y, col_x)) {
+      visited[y][x] = true;
+      let cell = self.get_cell((y, x)).clone();
+      for (new_y, new_x, new_cell) in self.get_friends((y, x)) {
         if new_cell.cost > cell.cost + 1 {
-          self.cells.get_mut(new_row_y as usize).unwrap()
-            .get_mut(new_col_x as usize).unwrap()
-            .cost = cell.cost + 1;
+          self.cells[new_y][new_x].cost = cell.cost + 1;
         }
-        queue.push_front((new_row_y as usize, new_col_x as usize));
+        queue.push_front((new_y, new_x));
       }
     }
   }
-}
-
-fn is_visited(visited: &Vec<Vec<bool>>, (y, x): (usize, usize)) -> bool {
-  *visited.get(y).unwrap()
-    .get(x).unwrap()
-}
-
-fn set_visited(visited: &mut Vec<Vec<bool>>, (y, x): (usize, usize)) {
-  *visited.get_mut(y).unwrap()
-    .get_mut(x).unwrap() = true;
 }
 
 fn part1(matrix: &Matrix) {

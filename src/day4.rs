@@ -9,7 +9,8 @@ pub fn main() {
 
 fn parse_lines() -> Vec<Vec<Section>> {
   let file = read_to_string("src/day4_input.txt").unwrap();
-  file.lines().map(|line| line.split(',')
+  file.lines()
+    .map(|line| line.split(',')
       .map(|section_str| from_section_str(section_str))
       .map(|section_list| Section::create_section_from_list(section_list))
       .collect::<Vec<Section>>()
@@ -53,10 +54,7 @@ fn from_section_str(section_str: &str) -> Vec<i32> {
 
 fn part1(parsed_lines: &Vec<Vec<Section>>) {
   let result = parsed_lines.into_iter()
-    .filter(|sections| sections.get(0)
-      .unwrap()
-      .one_contain_other(sections.get(1).unwrap())
-    )
+    .filter(|sections| sections[0].one_contain_other(&sections[1]))
     .count();
 
   println!("Part 1 result : {}", result);
@@ -64,10 +62,7 @@ fn part1(parsed_lines: &Vec<Vec<Section>>) {
 
 fn part2(parsed_lines: &Vec<Vec<Section>>) {
 let result = parsed_lines.into_iter()
-    .filter(|sections| sections.get(0)
-      .unwrap()
-      .sections_overlap(sections.get(1).unwrap())
-    )
+    .filter(|sections| sections[0].sections_overlap(&sections[1]))
     .count();
 
   println!("Part 2 result : {}", result);

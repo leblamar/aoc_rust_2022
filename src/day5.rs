@@ -22,9 +22,9 @@ impl Instruction {
   fn create_inst_from_line(line: &str) -> Instruction {
     let split: Vec<&str> = line.split(' ').collect();
     Instruction { 
-      qty: split.get(1).unwrap().parse::<usize>().unwrap(), 
-      src: split.get(3).unwrap().parse::<usize>().unwrap() - 1, 
-      dst: split.get(5).unwrap().parse::<usize>().unwrap() - 1
+      qty: split[1].parse::<usize>().unwrap(), 
+      src: split[3].parse::<usize>().unwrap() - 1, 
+      dst: split[5].parse::<usize>().unwrap() - 1
     }
   }
 }
@@ -43,12 +43,12 @@ struct Env {
 impl Env {
   fn create_env_from_lines(lines: Vec<&str>) -> Env {
     let mut columns: Vec<Vec<char>> = Vec::new();
-    let columns_len = lines.get(0).unwrap().len() / 4;
+    let columns_len = lines[0].len() / 4;
     (0..=columns_len).for_each(|_| columns.push(Vec::new()));
 
     for line in lines {
       for position in (0..line.len()).filter(|pos| pos % 4 == 1) {
-        let column = columns.get_mut(position / 4).unwrap();
+        let column = &mut columns[position / 4];
         let char = line.chars().nth(position).unwrap();
         if !char.is_whitespace() {
           column.insert(0, char);
@@ -60,14 +60,14 @@ impl Env {
   }
 
   fn apply(&mut self, inst: Instruction) {
-    let src_column = self.columns.get_mut(inst.src).unwrap();
+    let src_column = &mut self.columns[inst.src];
     let mut tmp_column: Vec<char> = Vec::new();
 
     for _ in 0..inst.qty {
       tmp_column.insert(0, src_column.pop().unwrap());
     }
 
-    let dst_column = self.columns.get_mut(inst.dst).unwrap();
+    let dst_column = &mut self.columns[inst.dst];
     for _ in 0..inst.qty {
       dst_column.push(tmp_column.pop().unwrap());
     }
@@ -113,9 +113,8 @@ impl EnvWithInst {
       .columns
       .clone()
       .into_iter()
-      .map(|column| column.get(column.len() - 1).unwrap().clone())
+      .map(|column| column[column.len() - 1].clone())
       .collect()
-      
   }
 }
 

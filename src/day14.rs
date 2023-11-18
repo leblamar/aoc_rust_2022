@@ -4,7 +4,7 @@ use std::thread;
 use std::time;
 
 pub fn main() {
-  println!("It's day 13 !!!");
+  println!("It's day 14 !!!");
 
   let mut matrix = read_and_parse_file();
 
@@ -121,51 +121,42 @@ impl Matrix {
       && (!is_final || !(point.y == 0 && point.x == 500 - self.min_x as i32))
   }
 
-  fn get(&self, point: &Point) -> &Cell {
-    &self.matrix[point.y as usize][point.x as usize]
-  }
-
   fn make_sand_fall(&mut self, sand_point: &Point) -> bool {
+    let size_y = self.matrix.len();
+    let size_x = self.matrix[0].len();
     let mut cur_sand_point = sand_point.clone();
     loop {
       let next_y = (cur_sand_point.y + 1) as usize;
-      let under_sand_point = Point {
-        x: cur_sand_point.x,
-        y: next_y as i32
-      };
-      if !self.is_inside(&under_sand_point, false) {
-        cur_sand_point = under_sand_point;
+      if next_y >= size_y {
+        cur_sand_point.y += 1;
         break;
       }
-      match self.get(&under_sand_point) {
+      match &self.matrix[next_y][cur_sand_point.x as usize] {
         Cell::Empty => {
-          cur_sand_point = Point {
-            x: cur_sand_point.x,
-            y: cur_sand_point.y + 1
-          }
+          cur_sand_point.y += 1;
         },
         _ => {
-          let left_sand_point = Point {
-            x: cur_sand_point.x - 1,
-            y: next_y as i32
-          };
-          if !self.is_inside(&left_sand_point, false) {
-            cur_sand_point = left_sand_point;
+          if cur_sand_point.x <= 0 {
+            cur_sand_point.y += 1;
+            cur_sand_point.x -= 1;
             break;
           }
-          match self.get(&left_sand_point) {
-            Cell::Empty => cur_sand_point = left_sand_point,
+          match self.matrix[next_y][(cur_sand_point.x - 1) as usize] {
+            Cell::Empty => {
+              cur_sand_point.y += 1;
+              cur_sand_point.x -= 1;
+            },
             _ => {
-              let right_sand_point = Point {
-                x: cur_sand_point.x + 1,
-                y: next_y as i32
-              };
-              if !self.is_inside(&right_sand_point, false) {
-                cur_sand_point = right_sand_point;
+              if cur_sand_point.x	+ 1 >= size_x as i32 {
+                cur_sand_point.y += 1;
+                cur_sand_point.x += 1;
                 break;
               }
-              match self.get(&right_sand_point) {
-                Cell::Empty => cur_sand_point = right_sand_point,
+              match self.matrix[next_y][(cur_sand_point.x + 1) as usize] {
+                Cell::Empty => {
+                  cur_sand_point.y += 1;
+                  cur_sand_point.x += 1;
+                },
                 _ => break
               };
             }
@@ -226,7 +217,7 @@ fn part1(matrix: &mut Matrix) {
   let mut result = 0;
   while is_inside {
     is_inside = matrix.make_sand_fall(&sand_pouring_point);
-    if debug && result%500 == 0 {
+    if debug && result%10 == 0 {
       println!("Iteration nb {}", result);
       println!("{}", matrix);
       thread::sleep(waiting_time);
@@ -256,7 +247,7 @@ fn part2(matrix: &mut Matrix) {
   let mut result = 0;
   while is_inside {
     is_inside = matrix.make_sand_fall(&sand_pouring_point);
-    if debug && result%500 == 0 {
+    if debug && result%200 == 0 {
       println!("Iteration nb {}", result);
       println!("{}", matrix);
       thread::sleep(waiting_time);
