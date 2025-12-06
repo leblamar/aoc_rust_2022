@@ -1,4 +1,3 @@
-use std::env;
 
 mod day1;
 mod day2;
@@ -15,23 +14,23 @@ mod day12;
 mod day13;
 mod day14;
 mod day15;
+mod day16;
 
 fn main() {
-  env::set_var("RUST_BACKTRACE", "1");
-
-  day1::main();
-  day2::main();
-  day3::main();
-  day4::main();
-  day5::main();
-  day6::main();
-  day7::main();
-  day8::main();
-  day9::main();
-  day10::main();
-  day11::main();
-  day12::main();
-  day13::main();
-  day14::main();
-  day15::main();
+  //day1::main();
+  //day2::main();
+  //day3::main();
+  //day4::main();
+  //day5::main();
+  //day6::main();
+  //day7::main();
+  //day8::main();
+  //day9::main();
+  //day10::main();
+  //day11::main();
+  //day12::main();
+  //day13::main();
+  //day14::main();
+  //day15::main();
+  day16::main();
 }
